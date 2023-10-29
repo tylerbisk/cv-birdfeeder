@@ -3,26 +3,22 @@ import StealthPlugin from "puppeteer-extra-plugin-stealth";
 
 puppeteer.use(StealthPlugin());
 const searchParams = {
-  imageUrl: "https://cdn.britannica.com/16/234216-050-C66F8665/beagle-hound-dog.jpg", //Parameter defines the URL of an image to perform the Google Lens search
+  imageUrl: "https://github.com/tylerbisk/cv-birdfeeder/blob/master/img/1.png", //Parameter defines the URL of an image to perform the Google Lens search
   hl: "en", //Parameter defines the language to use for the Google search
   gl: "US",
 };
 const URL = `https://lens.google.com/uploadbyurl?url=${searchParams.imageUrl}&hl=${searchParams.hl}&gl=${searchParams.gl}`;
 async function getResultsFromPage(page) {
   const image = await page.$$(".bn6k9b");
-  await Promise.all(image.map(async (t) => {await t.click();}));
+  await Promise.all(image.map(async (t) => { await t.click(); }));
   const knowledgeGraphItems = await page.$$(".DeMn2d");
-  console.log(knowledgeGraphItems);
   const knowledgeGraph = [];
   for (const item of knowledgeGraphItems) {
-    console.log(item);
     const label = await item.evaluate(x => x.textContent);
-    console.log(label);
+    console.log(label)
     const handles = await Promise.all(knowledgeGraphItems.map(handle => handle.getProperty("src")));
-    console.log(handles);
     const label2 = handle.textContent;
-    console.log(label2);
-    await item.click();
+    console.log(label2)
     await page.waitForTimeout(2000);
     const thumbnail = await item.$eval(".FH8DCc", (node) => node.getAttribute("src"));
     knowledgeGraph.push(
