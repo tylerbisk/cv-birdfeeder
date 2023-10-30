@@ -4,7 +4,7 @@ import StealthPlugin from "puppeteer-extra-plugin-stealth";
 puppeteer.use(StealthPlugin());
 
 const searchParams = {
-  imageUrl: "http://raw.githubusercontent.com/tylerbisk/cv-birdfeeder/master/img/3.png", //Parameter defines the URL of an image to perform the Google Lens search
+  imageUrl: "http://raw.githubusercontent.com/tylerbisk/cv-birdfeeder/master/img/lens.png", //Parameter defines the URL of an image to perform the Google Lens search
   hl: "en", //Parameter defines the language to use for the Google search
   gl: "US",
 };
