@@ -17,7 +17,7 @@ from processing.email.send_email import send_email
 import argparse
 import threading
 import os
-from up import upload_to_youtube
+import subprocess
 
 # Video Stream
 FRAMERATE = 24
@@ -30,19 +30,17 @@ FRAMES_TO_AVERAGE = 24
 # object detection
 OBJECTS_TO_RECORD = [14]  # bird only for now
 
-# Youtube
-UPLOAD_YOUTUBE = False
-CLIENT_SECRET_FILE = 'client_secrets.json'
-API_NAME = 'youtube'
-API_VERSION = 'v3'
-SCOPES = ['https://www.googleapis.com/auth/youtube.upload']
+# Lens
+ENABLE_LENS = True
 
 # Mail
-SEND_MAIL = True
+SEND_MAIL_IMG = True
+SEND_MAIL_VIDEO = True
+SEND_MAIL_START = False
 SEND_ATTACHMENT = True
-SENDER_EMAIL = "tyler.s.m.eng.project@gmail.com"
+SENDER_EMAIL = "tylers.meng.project@gmail.com"
 SENDER_PASSWORD = "pqsueqfqlhetivzo"
-RECEIVER_EMAIL = ["tyler07039@gmail.com"]  # vha3@cornell.edu"]
+RECEIVER_EMAIL = ["tyler07039@gmail.com"]  # vha3@cornell.edu"
 
 # Timing
 MOTION_INTERVAL = 0.75
@@ -50,7 +48,7 @@ OBJECT_DETECT_INTERVAL = 5
 
 # TODO Comment code
 # TODO change OBOBJECTS_TO_RECORD to strings
-# TODO add argparse for send_mail send_attatch upload_youtube
+# TODO add argparse for send_mail send_attach
 
 # initialize output
 output = None
@@ -79,7 +77,6 @@ def classify(args):
     global recorder
 
     use_pi_camera = args.use_pi_camera
-    # yolo_network = args.yolo_network
 
     prev_frame_time = 0
     frame_time = 0
@@ -110,10 +107,11 @@ def classify(args):
         # shrink and convert the image to grayscale
         #     to make motion detection faster
         current_frame_big = video_stream.read()
-        # current_frame_big = cv2.imread("dog.jpeg")
+        current_frame_big = cv2.imread("/home/pi/Documents/cv-birdfeeder/img/320.png")
         current_frame = imutils.resize(current_frame_big, SMALL_RESOLUTION)
         current_frame_big = imutils.resize(current_frame_big, RESOLUTION[0])
         gray_frame = cv2.cvtColor(current_frame, cv2.COLOR_BGR2GRAY)
+        scale = RESOLUTION[0] / SMALL_RESOLUTION
 
         # blur the image to reduce false positives from noise,
         # especially in night mode
@@ -123,7 +121,8 @@ def classify(args):
         if (current_time -
                 last_motion_detection) >= MOTION_INTERVAL and motion == False:
             last_motion_detection = current_time
-            (x1, x2, y1, y2) = motion_detection.detect_motion(gray_frame)
+            (x1, x2, y1, y2) = motion_detection.detect_motion(gray_frame, scale)
+
             # if there was motion detected
             if (x1 != np.inf and x2 != -np.inf and y1 != np.inf
                     and y2 != -np.inf):
@@ -131,7 +130,6 @@ def classify(args):
                 motion = True
 
         # detect objects if motion
-        scale = RESOLUTION[0] / SMALL_RESOLUTION
         if motion and (current_time - last_object_detection >=
                        OBJECT_DETECT_INTERVAL):
             last_object_detection = current_time
@@ -145,6 +143,9 @@ def classify(args):
         current_frame_big = object_detection.draw_labels(
             boxes, confs, class_ids, current_frame_big)
 
+        # TODO: Remove this
+        if frames == FRAMERATE*6:
+            motion = True
         ### Recording ###
         # check to see if specific object was seen
         myset = set(OBJECTS_TO_RECORD) & set(class_ids)
@@ -166,11 +167,25 @@ def classify(args):
                 recorder.start_recording(filename,
                                          cv2.VideoWriter_fourcc(*"mp4v"))
 
+                # TODO: delete this later
+                (x1, x2, y1, y2) = 70, 175, 90, 155
+
+                # Draw a rectangle if valid
+                if (x1 != np.inf and x2 != -np.inf and y1 != np.inf
+                    and y2 != -np.inf):
+                    cv2.rectangle(current_frame_big, (int(x1), int(y1)),
+                                (int(x2), int(y2)),
+                                color=(255, 255, 0))  #color is BGR
+
+                # Save the image
+                cv2.imwrite("/home/pi/Documents/cv-birdfeeder/img/lens.png", current_frame_big)
+
+
         if current_time - last_recorded_frame >= 1 / FRAMERATE:
             last_recorded_frame = current_time
             recorder.update(current_frame_big)
             # delete this later (only needed for motion recording so we dont record on first frame)
-            if frames < FRAMERATE*6:
+            if frames < FRAMERATE*7:
                 frames += 1
 
         if recorder.recording and (current_time - last_object) >= (
@@ -178,22 +193,14 @@ def classify(args):
             message = "Detected a " + label
             print(message)
             recorder.stop_recording()
-            response = None
-            if UPLOAD_YOUTUBE:
-                title = label + " at " + str(timestamp)
-                # command = """python upload_video.py --file="{}" --title="{}" --noauth_local_webserver --description="Uploaded automatically" --keywords="raspberry,pi,embedded,system" --category="22" --privacyStatus="private" """.format(
-                #     filename, filename)
-                response = upload_to_youtube(CLIENT_SECRET_FILE, API_NAME,
-                                             API_VERSION, filename, title,
-                                             SCOPES)
-            if SEND_MAIL:
-                if response is not None:
-                    link = "https://www.youtube.com/watch?v=" + str(
-                        response['id'])
-                else:
-                    link = None
+            if SEND_MAIL_VIDEO:
+                link = None
                 send_email(SENDER_EMAIL, RECEIVER_EMAIL, SENDER_PASSWORD,
                            message, link, SEND_ATTACHMENT, timestamp, filename)
+            if ENABLE_LENS:
+                # t3 = threading.Thread(target=run_lens)
+                # t3.start()
+                run_lens()
 
         # feed in the frame to the motion detector for next time
         motion_detection.update_average(gray_frame)
@@ -241,6 +248,49 @@ def create_output():
                b'Content-Type: image/jpeg\r\n\r\n' + bytearray(image) +
                b'\r\n')
 
+def run_lens():
+    # get to the right directory
+    subprocess.run("cd /home/pi/Documents/cv-birdfeeder", shell=True)
+
+    # push the new image
+    subprocess.run("git add img/lens.png", shell=True)
+    subprocess.run("git commit -m 'auto update lens png'", shell=True)
+    subprocess.run("git push", shell=True)
+    time.sleep(1)
+
+    # run lens javascript and get the label of the image
+    label = subprocess.run("node processing/lens/main.js", shell=True, capture_output=True)
+    print("got label:")
+    ret = label.stdout.decode()[1:-2]
+    print(ret)
+    # subprocess.run(f"echo '{ret}' > processing/lens/label.txt", shell=True)
+    # if the lens was successful
+    if ret != "":
+        # load the image
+        image = cv2.imread("/home/pi/Documents/cv-birdfeeder/img/lens.png")
+
+        # add the label to the image
+        text_size, _ = cv2.getTextSize(ret, cv2.FONT_HERSHEY_COMPLEX, 0.5, 1)
+        cv2.rectangle(image, (5 - 2, 235 - text_size[1]-1),
+                      (5 + text_size[0] + 2, 235 + 2), (255, 255, 255), -1)
+        cv2.putText(image, ret, (5, 235), cv2.FONT_HERSHEY_COMPLEX, 0.5, (255, 255, 0), 1)
+
+        # export the image using timestamp and returned label
+        timestamp = datetime.datetime.now(tz=pytz.timezone('US/Eastern'))
+        filename = "/home/pi/Documents/cv-birdfeeder/img/{}_{}.png".format(
+                    ret, timestamp.strftime("%m_%d_%Y--%H_%M_%S"))
+        cv2.imwrite(filename, image)
+
+        # send an email containing the image and label
+        if SEND_MAIL_IMG:
+            link = None
+            message = "Detected a " + ret
+            send_email(SENDER_EMAIL, RECEIVER_EMAIL, SENDER_PASSWORD,
+                        message, link, SEND_ATTACHMENT, timestamp, filename)
+
+    # load the image
+    # add the label to the image
+
 
 # point our flask object to index.html for the website...
 @flask_object.route('/')
@@ -252,7 +302,7 @@ def index():
 @flask_object.route('/video_feed')
 def video_feed():
     return Response(
-        create_output(),  # TODO: understand mimetype
+        create_output(),
         mimetype="multipart/x-mixed-replace; boundary=frame")
 
 
@@ -263,11 +313,6 @@ def get_args():
                         default=1,
                         type=int,
                         help='Whether to use Pi Camera or Web Camera')
-    # parser.add_argument(
-    #     '--yolo_network',
-    #     type=str,
-    #     default="tiny",
-    #     help="Whether to use the 'tiny' yolo network or the regular one")
 
     return parser.parse_args()
 
@@ -275,21 +320,20 @@ def get_args():
 if __name__ == '__main__':
     # we detect motion and send those frames to global var output
     args = get_args()
-    thread = threading.Thread(target=classify, args=[args])
-    thread.daemon = True
-    thread.start()
+
+    t1 = threading.Thread(target=classify, args=[args])
+    t1.start()
+
+    time.sleep(0.01)
+
+    t2 = threading.Thread(target=lambda: flask_object.run(host='0.0.0.0', port=8000))
+    t2.start()
     
     # Email ourselves the IP address and server address of the device
-    send_email(SENDER_EMAIL, RECEIVER_EMAIL, SENDER_PASSWORD,
-                           "Birdfeeder Details", None, True, datetime.datetime.now(tz=pytz.timezone('US/Eastern')), "/home/pi/Documents/ip.txt")
+    if SEND_MAIL_START:
+        send_email(SENDER_EMAIL, RECEIVER_EMAIL, SENDER_PASSWORD, "Birdfeeder Details", None, True, datetime.datetime.now(tz=pytz.timezone('US/Eastern')), "/home/pi/Documents/ip.txt")
     
-    # our flask object grabs those frames and creates output simultaneously
-    flask_object.run(host='0.0.0.0',
-                     port=8000,
-                     debug=True,
-                     threaded=True,
-                     use_reloader=False)
-    
+    # if any thread dies, kill entire program
     thread_count = threading.active_count()
     try:
         while True:

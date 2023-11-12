@@ -34,7 +34,7 @@ def send_email(send_from,
           <body>
             <p>
               {} at {}
-              <a href="{}">See video on YouTube</a> 
+              <a href="{}">Click here to view more</a> 
             </p>
           </body>
         </html>

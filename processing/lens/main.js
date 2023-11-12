@@ -14,23 +14,22 @@ const URL = `https://lens.google.com/uploadbyurl?url=${searchParams.imageUrl}&hl
 
 async function getResultsFromPage(page) {
   const labels = await page.$$(".DeMn2d");
-  
+
   let label = await Promise.all(labels.map(async (t) => {
-      return await t.evaluate(x => x.textContent);
-  }))
-
-  let sublabels = await page.$$(".XNTym");
-
-  let sublabel = await Promise.all(sublabels.map(async (t) => {
     return await t.evaluate(x => x.textContent);
   }))
 
-  //await page.waitForTimeout(2000);
+  // let sublabels = await page.$$(".XNTym");
 
-  //console.log(label);
-  //console.log(sublabel);
-  
-  return label;
+  // let sublabel = await Promise.all(sublabels.map(async (t) => {
+  //   return await t.evaluate(x => x.textContent);
+  // }))
+
+  //await page.waitForTimeout(2000);
+  if (label.length === 0) {
+    return "";
+  }
+  return label[0];
 }
 
 
@@ -41,7 +40,7 @@ async function getLensResults() {
     headless: "new", // false for debuggung to see what is going on
   });
   const page = await browser.newPage();
-  await page.setDefaultNavigationTimeout(60000);
+  await page.setDefaultNavigationTimeout(90000);
   await page.goto(URL);
   const results = await getResultsFromPage(page);
   await browser.close();

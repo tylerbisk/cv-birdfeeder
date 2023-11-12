@@ -7,15 +7,6 @@ import time
 class YoloObjectDetection:
 
     def __init__(self):
-        # if net == "tiny":
-        #     network = cv2.dnn.readNet("yolo/yolov3-tiny.weights",
-        #                               "yolo/yolov3-tiny.cfg")
-        #     conf_thresh = 0.33
-        # else:
-        #     network = cv2.dnn.readNet("yolo/yolov3.weights", "yolo/yolov3.cfg")
-        #     conf_thresh = 0.67
-
-        #network = cv2.dnn.readNet("yolo/yolov4.weights", "yolo/yolov4.cfg")
 
         network = cv2.dnn.readNet("yolo/yolov3-tiny.weights", "yolo/yolov3-tiny.cfg")
         
