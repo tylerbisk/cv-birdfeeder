@@ -273,7 +273,7 @@ def run_lens():
         text_size, _ = cv2.getTextSize(ret, cv2.FONT_HERSHEY_COMPLEX, 0.5, 1)
         cv2.rectangle(image, (5 - 2, 235 - text_size[1]-1),
                       (5 + text_size[0] + 2, 235 + 2), (255, 255, 255), -1)
-        cv2.putText(image, ret, (5, 235), cv2.FONT_HERSHEY_COMPLEX, 0.5, (255, 255, 0), 1)
+        cv2.putText(image, ret, (5, 235), cv2.FONT_HERSHEY_COMPLEX, 0.5, (0, 0, 0), 1)
 
         # export the image using timestamp and returned label
         timestamp = datetime.datetime.now(tz=pytz.timezone('US/Eastern'))
