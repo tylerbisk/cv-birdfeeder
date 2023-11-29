@@ -46,7 +46,6 @@ MOTION_INTERVAL = 0.75
 OBJECT_DETECT_INTERVAL = 5
 
 # TODO Comment code
-# TODO change OBOBJECTS_TO_RECORD to strings
 # TODO add argparse for send_mail send_attach
 
 # initialize output
@@ -109,7 +108,7 @@ def classify(args):
         # shrink and convert the image to grayscale
         #     to make motion detection faster
         current_frame_big = video_stream.read()
-        current_frame_big = cv2.imread("/home/pi/Documents/cv-birdfeeder/img/320.png")
+        # current_frame_big = cv2.imread("/home/pi/Documents/cv-birdfeeder/img/320.png")
         current_frame = imutils.resize(current_frame_big, SMALL_RESOLUTION)
         current_frame_big = imutils.resize(current_frame_big, RESOLUTION[0])
         gray_frame = cv2.cvtColor(current_frame, cv2.COLOR_BGR2GRAY)
@@ -145,19 +144,10 @@ def classify(args):
             boxes, confs, class_ids, current_frame_big
         )
 
-        # TODO: Remove this
-        if frames == FRAMERATE * 6:
-            motion = True
         ### Recording ###
         # check to see if specific object was seen
         myset = set(OBJECTS_TO_RECORD) & set(class_ids)
-        if bool(myset) or (
-            motion and frames >= FRAMERATE * 5
-        ):  ## Record all motion, delete `or motion` later
-            ### Record all motion, delete later
-            if not myset:
-                myset = set([14])
-            ### Record all motion, delete later
+        if bool(myset):
             object = myset.pop()
             label = str(object_detection.classes[object])
             last_object = current_time
@@ -169,9 +159,6 @@ def classify(args):
                     label, timestamp.strftime("%m_%d_%Y--%H_%M_%S")
                 )
                 recorder.start_recording(filename, cv2.VideoWriter_fourcc(*"mp4v"))
-
-                # TODO: delete this later
-                (x1, x2, y1, y2) = 70, 175, 90, 155
 
                 # Draw a rectangle if valid
                 if x1 != np.inf and x2 != -np.inf and y1 != np.inf and y2 != -np.inf:
@@ -190,9 +177,6 @@ def classify(args):
         if current_time - last_recorded_frame >= 1 / FRAMERATE:
             last_recorded_frame = current_time
             recorder.update(current_frame_big)
-            # delete this later (only needed for motion recording so we dont record on first frame)
-            if frames < FRAMERATE * 7:
-                frames += 1
 
         if recorder.recording and (current_time - last_object) >= (
             recorder.max_length / FRAMERATE
@@ -213,9 +197,8 @@ def classify(args):
                     filename,
                 )
             if ENABLE_LENS:
-                # t3 = threading.Thread(target=run_lens)
-                # t3.start()
-                run_lens()
+                t3 = threading.Thread(target=run_lens)
+                t3.start()
 
         # feed in the frame to the motion detector for next time
         motion_detection.update_average(gray_frame)
@@ -330,9 +313,6 @@ def run_lens():
                 timestamp,
                 filename,
             )
-
-    # load the image
-    # add the label to the image
 
 
 # point our flask object to index.html for the website...
