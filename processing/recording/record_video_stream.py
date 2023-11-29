@@ -1,12 +1,12 @@
+import time
+from collections import deque
 from queue import Queue
 from threading import Thread
-from collections import deque
-import time
+
 import cv2
 
 
 class RecordClip:
-
     def __init__(self, max_length=48, fps=24):
         self.max_length = max_length
         self.frames = deque(maxlen=max_length)
@@ -24,8 +24,12 @@ class RecordClip:
     def start_recording(self, output, fourcc):
         self.recording = True
         self.video_writer = cv2.VideoWriter(
-            output, fourcc, self.fps,
-            (self.frames[0].shape[1], self.frames[0].shape[0]), True)
+            output,
+            fourcc,
+            self.fps,
+            (self.frames[0].shape[1], self.frames[0].shape[0]),
+            True,
+        )
 
         self.frames_queue = Queue()
 

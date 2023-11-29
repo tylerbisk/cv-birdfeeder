@@ -1,20 +1,19 @@
-import numpy as np
-import imutils
-import cv2
 import time
+
+import cv2
+import imutils
+import numpy as np
 
 
 class YoloObjectDetection:
-
     def __init__(self):
-
         network = cv2.dnn.readNet("yolo/yolov3-tiny.weights", "yolo/yolov3-tiny.cfg")
-        
+
         classes = []
         with open("yolo/coco.names", "r") as f:
             classes = [line.strip() for line in f.readlines()]
 
-        #Determine the output layer names from the YOLO model
+        # Determine the output layer names from the YOLO model
         output_layers = network.getUnconnectedOutLayersNames()
         self.network = network
         self.classes = classes
@@ -22,12 +21,14 @@ class YoloObjectDetection:
         self.conf_thresh = 0.01
 
     def detect_objects(self, image, scale=1):
-        blob = cv2.dnn.blobFromImage(image,
-                                     scalefactor=0.00392,
-                                     size=(160, 160),
-                                     mean=(0, 0, 0),
-                                     swapRB=True,
-                                     crop=False)
+        blob = cv2.dnn.blobFromImage(
+            image,
+            scalefactor=0.00392,
+            size=(160, 160),
+            mean=(0, 0, 0),
+            swapRB=True,
+            crop=False,
+        )
         self.network.setInput(blob)
         outputs = self.network.forward(self.output_layers)
 
@@ -62,6 +63,7 @@ class YoloObjectDetection:
                 label = str(self.classes[class_ids[i]])
                 conf = str(round(confs[i], 3))
                 cv2.rectangle(image, (x, y), (x + w, y + h), (255, 255, 0), 2)
-                cv2.putText(image, label + ", " + conf, (x, y - 5), font, 1.2,
-                            (255, 255, 0), 1)
+                cv2.putText(
+                    image, label + ", " + conf, (x, y - 5), font, 1.2, (255, 255, 0), 1
+                )
         return image
