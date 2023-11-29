@@ -318,7 +318,7 @@ def run_lens():
 # point our flask object to index.html for the website...
 @flask_object.route("/")
 def index():
-    return flask.render_template("index2.html")
+    return flask.render_template("index.html")
 
 
 # ... and to our frame as a byte array (create_output()) for the video_feed
